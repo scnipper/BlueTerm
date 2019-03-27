@@ -1,14 +1,11 @@
 package me.creese.blueterm;
 
-import android.util.Log;
-
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 
 public class Terminal extends Thread {
 
@@ -36,35 +33,63 @@ public class Terminal extends Thread {
     @Override
     public void run() {
         try {
+
             TermProcess process = new TermProcess(runtime.exec(currCommand, null, workDir));
 
             InputStream inputStream = process.getProcess().getInputStream();
+            InputStream errorStream = process.getProcess().getErrorStream();
             OutputStream outputStream = process.getProcess().getOutputStream();
-            DataInputStream data = new DataInputStream(inputStream);
+            DataInputStream dataInputStream = new DataInputStream(inputStream);
+            DataInputStream dataErrStream = new DataInputStream(errorStream);
+
             boolean isStartRead = false;
-            ArrayList<Byte> byteArrayList = new ArrayList<>(4096);
+            StringBuilder outStr = new StringBuilder();
             while (!process.isEnd()) {
                 int available = inputStream.available();
-
-                if (available > 0) {
-                    isStartRead = true;
-                    byteArrayList.add((byte) inputStream.read());
+                int errorAvailable = errorStream.available();
 
 
-                } else if(isStartRead){
+                if (errorAvailable > 0) {
+
+                    byte[] bytes = new byte[errorAvailable];
+                    dataErrStream.readFully(bytes);
+
                     if (commandListener != null) {
-                        byte b[] = new byte[byteArrayList.size()];
 
-                        for (int i = 0; i < byteArrayList.size(); i++) {
-                            b[i] = byteArrayList.get(i);
-                        }
-                        byteArrayList.clear();
+                        commandListener.onCommandSuccess(new String(bytes));
 
-                        commandListener.onCommandSuccess(new String(b));
+
                     }
 
-                    isStartRead = false;
+
                 }
+                if (available > 0) {
+                    isStartRead = true;
+                    byte[] bytes = new byte[available];
+                    dataInputStream.readFully(bytes);
+
+                    /*int n = 0;
+                    while (n < available) {
+                        int count = inputStream.read(bytes, n, available - n);
+                        if (count < 0)
+                            throw new EOFException();
+                        n += count;
+                    }
+*/
+                    for (byte aByte : bytes) {
+                        if(aByte == 0x1b) {
+                            System.out.println("lol");
+                        }
+                    }
+                    if (commandListener != null) {
+
+                        commandListener.onCommandSuccess(new String(bytes));
+
+
+                    }
+
+
+                } else continue;
 
 
             }

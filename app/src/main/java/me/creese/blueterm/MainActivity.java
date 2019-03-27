@@ -9,7 +9,7 @@ import android.widget.TextView;
 public class MainActivity extends AppCompatActivity implements CommandListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
-    private TextView text;
+    private TermView termView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,19 +18,16 @@ public class MainActivity extends AppCompatActivity implements CommandListener {
 
         Terminal terminal = new Terminal();
         terminal.setCommandListener(this);
-        terminal.execCommand("top");
+        terminal.execCommand("whoami");
 
-        text = findViewById(R.id.text_comand);
+        termView = findViewById(R.id.term_view);
+
+
     }
 
     @Override
     public void onCommandSuccess(final String result) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                text.setText(result);
-            }
-        });
+        termView.setUserName(result);
 
     }
 
